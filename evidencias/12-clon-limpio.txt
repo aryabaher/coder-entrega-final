@@ -1,0 +1,50 @@
+Clon en limpio en C:\Users\abaher\AppData\Local\Temp\clon-final-6321a065 (sin .env, venv nuevo)
+$ git clone --depth 1 https://github.com/aryabaher/coder-entrega-final.git repo
+Cloning into 'repo'...
+(exit 0)
+
+$ git log -1 --format=%h %s
+b7f75bf Completa la entrega final: persistencia con volumen, sin valores fijos y evidencia real.
+(exit 0)
+
+$ git ls-files .env *.sqlite
+
+(exit 0)
+
+$ git ls-files screenshots evidencias | wc -l
+17
+(exit 0)
+
+$ py -3.12 -m venv .venv
+
+(exit 0)
+
+$ python -m pip install -q -r requirements.txt
+[notice] A new release of pip is available: 25.0.1 -> 26.3
+[notice] To update, run: C:\Users\abaher\AppData\Local\Temp\clon-final-6321a065\repo\.venv\Scripts\python.exe -m pip install --upgrade pip
+(exit 0)
+
+$ python -m pytest -q
+........................................................................ [ 66%]
+.....................................                                    [100%]
+============================== warnings summary ===============================
+rag.py:11
+  C:\Users\abaher\AppData\Local\Temp\clon-final-6321a065\repo\rag.py:11: DeprecationWarning: `langchain-community` is being sunset and is no longer actively maintained. See https://github.com/langchain-ai/langchain-community/issues/674 for details and migration guidance toward standalone integration packages.
+    from langchain_community.document_loaders import DirectoryLoader, TextLoader
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+109 passed, 1 warning in 2.64s
+(exit 0)
+
+$ python -m mypy
+Success: no issues found in 16 source files
+(exit 0)
+
+$ python validacion.py   (última línea)
+validacion ok
+(exit 0)
+
+$ py -3.11 main.py
+Python 3.12+ requerido: app/graph.py usa el alias `type` (PEP 695). Versión actual: 3.11. Creá el venv con `py -3.12 -m venv .venv` (Windows) o `python3.12 -m venv .venv` (Linux/macOS).
+(exit 1)
+

@@ -589,6 +589,7 @@ Cómo reproducirlo: `python -m pytest tests/test_entorno.py::test_indice_incompa
 | `evidencias/09-reinicio.txt` | El hilo después de `docker compose restart api worker` y después de `docker compose down` + `up`, y una aprobación pendiente que se aprueba después de reiniciar. |
 | `evidencias/10-hitl.txt` | Pausa en `AWAITING_APPROVAL`, aprobar y rechazar. |
 | `evidencias/11-mypy.txt` | `mypy --strict` sin errores. |
+| `evidencias/12-clon-limpio.txt` | Clon de `main` desde GitHub, sin `.env` y con venv nuevo: `pip install -r requirements.txt` alcanza, 109 passed, mypy sin errores, `validacion ok` y la guardia de 3.11. |
 | `screenshots/` | El dashboard de Phoenix (ver [Trazas en Phoenix](#trazas-en-phoenix)). |
 
 ## Checklist
