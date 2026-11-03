@@ -1,5 +1,7 @@
+$ python pruebas_sistema.py
 Phoenix DELETE intelligence: 204
 Checkpointer: AsyncRedisSaver en redis://localhost:6379
+RAG: Pinecone índice=techcorp-rag-hibrido namespace=politicas-internas vectores=9, no se reingesta
 
 [1/5] OK
 Q: ¿Cuántos días de vacaciones corresponden con 5 años de antigüedad?
@@ -11,7 +13,7 @@ A: La política de TechCorp permite 3 días de teletrabajo por semana.
 
 [3/5] OK
 Q: ¿Qué tiene que completar una persona nueva durante el onboarding?
-A: Durante el onboarding en TechCorp, una persona nueva debe completar las siguientes etapas:
+A: Durante el onboarding en TechCorp, una persona nueva debe completar las siguientes etapas: 
 
 1. Inducción general sobre la cultura de la empresa.
 2. Capacitación específica del rol.
@@ -21,13 +23,24 @@ Además, en la primera semana, recibe sus credenciales de acceso y el equipamien
 
 [4/5] OK
 Q: ¿Cuál es la regla de contraseñas de la política de seguridad informática?
-A: La regla de contraseñas en la política de seguridad informática de TechCorp establece que las contraseñas deben tener un mínimo de 12 caracteres, combinando mayúsculas, minúsculas, números y símbolos. Deben renovarse cada 90 días, está prohibido reutilizar contraseñas de servicios personales en sistemas corporativos y no se pueden reutilizar las últimas 8 contraseñas. Además, se requiere autenticación de dos factores (2FA) en las plataformas corporativas.
+A: La regla de contraseñas de la política de seguridad informática de TechCorp establece que las contraseñas deben tener un mínimo de 12 caracteres, combinando mayúsculas, minúsculas, números y símbolos. Deben renovarse cada 90 días, está prohibido reutilizar contraseñas de servicios personales en sistemas corporativos, y se recomienda el uso de un gestor de contraseñas corporativo. Además, está prohibido compartir credenciales por chat, correo o documentos compartidos.
 
 [5/5] OK
 Q: Un empleado va a cumplir 12 años en TechCorp. Tuvo 14 días de vacaciones los primeros 5 años, 21 los siguientes 5, y ahora tiene derecho a 28. ¿Cuántos días de vacaciones acumuló en total en esos 12 años?
-A: El empleado acumuló un total de **231 días** de vacaciones en 12 años. Esto se calcula como sigue: **5 años x 14 días = 70 días**, **5 años x 21 días = 105 días**, y **2 años x 28 días = 56 días**. Total: **70 + 105 + 56 = 231 días**.
+A: El empleado acumuló un total de 231 días de vacaciones en 12 años en TechCorp.
 
-Phoenix http://localhost:6006 proyecto intelligence id=UHJvamVjdDoz traceCount=5 spans_orquestador=5
+Phoenix http://localhost:6006 proyecto intelligence id=UHJvamVjdDoy traceCount=5 spans_orquestador=5
+(exit 0)
 
-Redis DBSIZE: 358
-Claves de ejemplo: checkpoint:prueba-1, checkpoint:prueba-2, checkpoint:prueba-3, checkpoint:prueba-4, checkpoint:prueba-5
+$ docker compose exec redis redis-cli DBSIZE
+2671
+(exit 0)
+
+$ docker compose exec redis redis-cli --scan --pattern 'checkpoint:prueba-*'   (hilo de cada clave, sin repetir)
+checkpoint:prueba-1
+checkpoint:prueba-2
+checkpoint:prueba-3
+checkpoint:prueba-4
+checkpoint:prueba-5
+(exit 0)
+

@@ -6,8 +6,8 @@ El Checkpointer de LangGraph es AsyncRedisSaver: el hilo sobrevive a un reinicio
 import functools
 import os
 import unicodedata
-from collections.abc import Awaitable, Callable
-from typing import Any, Literal
+from collections.abc import Awaitable, Sequence
+from typing import Any, Literal, Protocol
 
 from langchain_core.callbacks import get_usage_metadata_callback
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
@@ -30,9 +30,10 @@ MAX_PASOS = 6
 RECURSION_LIMIT = 25
 TURNOS_DE_CONTEXTO = 3
 
-# USD por token del modelo configurado en OPENAI_MODEL. Phoenix calcula el costo real; esto es el umbral de la pausa.
-PRECIO_ENTRADA_USD = 0.15 / 1_000_000
-PRECIO_SALIDA_USD = 0.60 / 1_000_000
+# USD por millón de tokens. Los defaults son los de gpt-4o-mini; con otro modelo se cambian en .env.
+# Phoenix calcula el costo real; esto solo alimenta el umbral de la pausa.
+PRECIO_ENTRADA_USD_1M = 0.15
+PRECIO_SALIDA_USD_1M = 0.60
 COSTO_MAXIMO_USD = 0.01
 
 MARCAS_CRITICAS = (
@@ -81,23 +82,41 @@ def es_critica(texto: str) -> bool:
     return any(marca in normalizado for marca in MARCAS_CRITICAS)
 
 
-def limite_costo() -> float:
-    """COSTO_MAXIMO_USD del entorno. Si no está o no es un número, el default."""
+def _numero_del_entorno(variable: str, default: float) -> float:
+    """Un número de .env. Si no está o no se puede leer, el default."""
     try:
-        return float(os.getenv("COSTO_MAXIMO_USD") or COSTO_MAXIMO_USD)
+        return float(os.getenv(variable) or default)
     except ValueError:
-        return COSTO_MAXIMO_USD
+        return default
+
+
+def limite_costo() -> float:
+    """COSTO_MAXIMO_USD del entorno."""
+    return _numero_del_entorno("COSTO_MAXIMO_USD", COSTO_MAXIMO_USD)
+
+
+def default_recursion_limit() -> int:
+    """RECURSION_LIMIT del entorno. Es el tope de pasos de LangGraph en cada ainvoke."""
+    return int(_numero_del_entorno("RECURSION_LIMIT", RECURSION_LIMIT))
 
 
 def costo_estimado(state: AgentState) -> float:
     entrada = state.get("input_tokens", 0) or 0
     salida = state.get("output_tokens", 0) or 0
-    return entrada * PRECIO_ENTRADA_USD + salida * PRECIO_SALIDA_USD
+    precio_entrada = _numero_del_entorno("PRECIO_ENTRADA_USD_1M", PRECIO_ENTRADA_USD_1M) / 1_000_000
+    precio_salida = _numero_del_entorno("PRECIO_SALIDA_USD_1M", PRECIO_SALIDA_USD_1M) / 1_000_000
+    return entrada * precio_entrada + salida * precio_salida
+
+
+class Nodo(Protocol):
+    """Un nodo async del grafo. LangGraph le pasa el estado por el nombre `state`."""
+
+    def __call__(self, state: AgentState) -> Awaitable[dict[str, Any]]: ...
 
 
 def medido(
-    nodo: Callable[[AgentState], Awaitable[dict[str, Any]]],
-) -> Callable[[AgentState], Awaitable[dict[str, Any]]]:
+    nodo: Nodo,
+) -> Nodo:
     """Suma al estado los tokens que gastó el nodo. Con eso decide la guarda de costo."""
 
     @functools.wraps(nodo)
@@ -112,8 +131,8 @@ def medido(
 
 
 def con_contexto(
-    nodo: Callable[[AgentState], Awaitable[dict[str, Any]]],
-) -> Callable[[AgentState], Awaitable[dict[str, Any]]]:
+    nodo: Nodo,
+) -> Nodo:
     """En un turno de seguimiento, el especialista recibe la pregunta con la conversación previa.
 
     El especialista solo lee el último mensaje. Sin esto, "¿y si fueran 15 años?" llega sin el tema.
@@ -126,14 +145,14 @@ def con_contexto(
         if not previa or ultimo.type != "human":
             return await nodo(state)
         pregunta = HumanMessage(content=f"{previa}\nPregunta actual: {texto_de(ultimo.content)}")
-        return await nodo({**state, "messages": [*state["messages"][:-1], pregunta]})  # type: ignore[typeddict-item]
+        return await nodo({**state, "messages": [*state["messages"][:-1], pregunta]})
 
     return envoltura
 
 
 def con_tarea(
-    nodo: Callable[[AgentState], Awaitable[dict[str, Any]]],
-) -> Callable[[AgentState], Awaitable[dict[str, Any]]]:
+    nodo: Nodo,
+) -> Nodo:
     """El analista recibe la pregunta del turno y los datos que ya consiguió el equipo.
 
     Con solo el último mensaje, a veces calcula sin los años de la pregunta o sin los datos de la política.
@@ -151,12 +170,12 @@ def con_tarea(
             f"Pregunta actual: {latest_question(state['messages'])}\n"
             f"Datos del equipo:\n{datos or '(todavía ninguno: usá los números de la pregunta)'}"
         )
-        return await nodo({**state, "messages": [*state["messages"], HumanMessage(content=tarea)]})  # type: ignore[typeddict-item]
+        return await nodo({**state, "messages": [*state["messages"], HumanMessage(content=tarea)]})
 
     return envoltura
 
 
-def conversacion_previa(mensajes: list[BaseMessage]) -> str:
+def conversacion_previa(mensajes: Sequence[BaseMessage]) -> str:
     """Preguntas y respuestas finales de los turnos anteriores del hilo (las últimas TURNOS_DE_CONTEXTO)."""
     pares: list[tuple[str, str]] = []
     pregunta: str | None = None
@@ -317,6 +336,7 @@ async def nodo_sintesis(state: AgentState) -> dict[str, Any]:
         f"{previa}\nPregunta actual: {latest_question(state['messages'])}\n\nAportes del equipo:\n"
         + "\n".join(aportes)
         + "\n\nRedactá una respuesta final clara y breve combinando estos aportes. Respondé solo lo que se pregunta."
+        + " Escribí texto plano, sin LaTeX ni Markdown. No agregues cuentas que no estén en los aportes."
         + (" Decí qué decidió la persona sobre la acción pausada." if hubo_decision else "")
     )
     llm = modelo.obtener_llm()
@@ -367,12 +387,12 @@ async def abrir_redis_saver(url: str | None = None) -> AsyncRedisSaver:
     return saver
 
 
-def compile_graph(checkpointer: BaseCheckpointSaver) -> Orquestador:
+def compile_graph(checkpointer: BaseCheckpointSaver[Any]) -> Orquestador:
     """Una sola compilación. El checkpointer lo abre acompile_graph (AsyncRedisSaver) o el test (MemorySaver)."""
     return grafo.compile(checkpointer=checkpointer)
 
 
-async def acompile_graph(checkpointer: BaseCheckpointSaver | None = None) -> Orquestador:
+async def acompile_graph(checkpointer: BaseCheckpointSaver[Any] | None = None) -> Orquestador:
     """Compilación de producción. Sin argumento, el Checkpointer es AsyncRedisSaver."""
     if checkpointer is None:
         checkpointer = await abrir_redis_saver()
@@ -449,18 +469,21 @@ async def _empaquetar(resultado: dict[str, Any], config: dict[str, Any]) -> dict
     return {"paused": False, "interrupt": None, "result": texto}
 
 
-async def run_graph(pregunta: str, config: dict[str, Any], recursion_limit: int = RECURSION_LIMIT) -> dict[str, Any]:
-    """Un turno del hilo config['configurable']['thread_id']. recursion_limit llega al ainvoke."""
-    conf = {**config, "recursion_limit": recursion_limit}
+async def run_graph(pregunta: str, config: dict[str, Any], recursion_limit: int | None = None) -> dict[str, Any]:
+    """Un turno del hilo config['configurable']['thread_id']. recursion_limit llega al ainvoke.
+
+    Sin argumento, sale de RECURSION_LIMIT en .env (default 25).
+    """
+    conf = {**config, "recursion_limit": recursion_limit or default_recursion_limit()}
     resultado = await get_graph().ainvoke(estado_inicial(pregunta), conf)
     return await _empaquetar(resultado, conf)
 
 
 async def resume_graph(
-    decision: dict[str, Any], config: dict[str, Any], recursion_limit: int = RECURSION_LIMIT
+    decision: dict[str, Any], config: dict[str, Any], recursion_limit: int | None = None
 ) -> dict[str, Any]:
     """Sigue después de interrupt. El dict es lo que interrupt() devuelve en el nodo."""
-    conf = {**config, "recursion_limit": recursion_limit}
+    conf = {**config, "recursion_limit": recursion_limit or default_recursion_limit()}
     resultado = await get_graph().ainvoke(Command(resume=decision), conf)
     return await _empaquetar(resultado, conf)
 

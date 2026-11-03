@@ -1,0 +1,4 @@
+$ python -m mypy   (strict, archivos de [tool.mypy] en pyproject.toml)
+Success: no issues found in 16 source files
+(exit 0)
+

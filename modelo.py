@@ -78,7 +78,9 @@ def crear_llm(
         )
     provider, modelo = resolver_modelo(nombre, modelo)
     if provider == "google":
-        return ChatGoogleGenerativeAI(model=modelo, temperature=temperature, max_retries=0)
+        return ChatGoogleGenerativeAI(
+            model=modelo, temperature=temperature, max_output_tokens=max_tokens, max_retries=0
+        )
     if provider == "anthropic":
         return ChatAnthropic(
             model_name=modelo,

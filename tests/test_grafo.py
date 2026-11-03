@@ -149,6 +149,8 @@ def test_la_sintesis_normal_no_menciona_aprobaciones(
     _correr(hilo="sin-aprobacion")
     prompt = str(llm.prompts[-1])
     assert "Respondé solo lo que se pregunta." in prompt
+    assert "sin LaTeX ni Markdown" in prompt
+    assert "No agregues cuentas que no estén en los aportes." in prompt
     assert "acción pausada" not in prompt
     assert "aprob" not in prompt.lower()
 

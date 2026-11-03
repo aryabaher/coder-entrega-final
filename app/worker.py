@@ -10,7 +10,7 @@ import json
 import os
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
@@ -19,9 +19,10 @@ from redis import asyncio as aioredis
 QUEUE_NAME = "tasks_queue"
 STATUS_PREFIX = "status:"
 THREAD_PREFIX = "thread:"
-RECURSION_LIMIT = 25
 DEFAULT_REDIS_URL = "redis://localhost:6379"
 ACTIVE = ("PENDING", "RUNNING", "AWAITING_APPROVAL")
+# Not a PEP 695 `type` alias: this module has to parse on 3.11 so the startup guard can speak first.
+JobStatus = Literal["PENDING", "RUNNING", "AWAITING_APPROVAL", "DONE", "FAILED"]
 
 redis_client: Any = None
 running_tasks: set[asyncio.Task[None]] = set()
@@ -79,7 +80,7 @@ async def read_job(job_id: str) -> dict[str, Any] | None:
     raw = await _client().get(_job_key(job_id))
     if raw is None:
         return None
-    return json.loads(raw)
+    return cast(dict[str, Any], json.loads(raw))
 
 
 async def enqueue_task(query: str, thread_id: str | None = None) -> dict[str, Any]:
@@ -120,7 +121,8 @@ async def enqueue_resume(job_id: str, approved: bool) -> None:
 
 async def read_thread(thread_id: str) -> list[dict[str, str | None]] | None:
     """Thread history from the AsyncRedisSaver checkpoints."""
-    return await _graph().thread_history(thread_id)
+    history = await _graph().thread_history(thread_id)
+    return cast(list[dict[str, str | None]] | None, history)
 
 
 def _config(thread_id: str) -> dict[str, Any]:
@@ -151,7 +153,7 @@ async def _run_traced(record: dict[str, Any], query: str, fn: Any, *args: Any) -
             status = "AWAITING_APPROVAL" if result["paused"] else "DONE"
             span.add_event("status", {"status": status})
             span.set_attribute("output.value", result["result"] or json.dumps(result["interrupt"]))
-            return result
+            return cast(dict[str, Any], result)
 
 
 async def _release_thread(record: dict[str, Any]) -> None:
@@ -182,7 +184,7 @@ async def _start(job_id: str) -> None:
         _graph().run_graph,
         record["query"],
         _config(record["thread_id"]),
-        RECURSION_LIMIT,
+        _graph().default_recursion_limit(),
     )
     await _finish(record, result)
 
@@ -199,7 +201,7 @@ async def _resume(job_id: str, approved: bool) -> None:
         _graph().resume_graph,
         {"approved": approved},
         _config(record["thread_id"]),
-        RECURSION_LIMIT,
+        _graph().default_recursion_limit(),
     )
     await _finish(record, result)
 
@@ -272,7 +274,7 @@ async def connect() -> None:
     """Redis client and the graph compiled with AsyncRedisSaver. Fails with a readable message if Redis is down."""
     global redis_client
     if redis_client is None:
-        client = aioredis.from_url(redis_url(), decode_responses=True)
+        client = aioredis.from_url(redis_url(), decode_responses=True)  # type: ignore[no-untyped-call]
         try:
             await client.ping()
         except Exception as exc:

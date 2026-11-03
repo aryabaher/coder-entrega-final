@@ -12,4 +12,5 @@ addopts = "-ra -q"
 [tool.mypy]
 python_version = "3.12"
 strict = true
+files = ["main.py", "app", "agents", "rag.py", "modelo.py", "state.py", "errors.py", "requisitos.py"]
 exclude = ["^\\.venv/"]

@@ -5,8 +5,9 @@ exigir_python_312()
 import os
 
 os.environ["TRAZAS_OFFLINE"] = "1"
-os.environ.pop("PINECONE_API_KEY", None)
-os.environ.pop("COSTO_MAXIMO_USD", None)
+# Vacías y no ausentes: load_dotenv no pisa una variable definida, pero sí llena una que falta.
+os.environ["PINECONE_API_KEY"] = ""
+os.environ["COSTO_MAXIMO_USD"] = ""
 
 from collections.abc import Iterator
 from typing import Any

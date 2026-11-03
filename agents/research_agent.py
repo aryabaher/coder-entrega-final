@@ -70,7 +70,7 @@ async def buscar_en_politicas_internas(pregunta: str) -> str:
     return ResultadoBusqueda(fragmentos=fragmentos).observacion()
 
 
-buscar_en_politicas_internas.handle_validation_error = _consulta_invalida  # type: ignore[attr-defined]
+buscar_en_politicas_internas.handle_validation_error = _consulta_invalida  # type: ignore[assignment]
 
 
 def asegurar_agente() -> Any:

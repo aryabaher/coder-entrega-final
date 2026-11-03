@@ -1,0 +1,22 @@
+$ python metricas.py
+Phoenix http://localhost:6006, proyecto intelligence
+Trazas en el proyecto: 5
+Latencia de traza calculada por Phoenix: p50 9.23 s, p95 15.07 s, p99 16.23 s
+Costo total calculado por Phoenix: 0.002589 USD (entrada 0.001716, salida 0.000873)
+Tokens: entrada 16114, salida 1455
+
+Costo por ejecución (una traza `orquestador` por job):
+- job 15db3f0c-41d0-4038-b727-9fac5bdc60ff: 16.51 s, 6997 tokens, 0.000930 USD
+- job c2e78f32-56b0-4f11-9efd-9d19165fd945: 5.91 s, 2658 tokens, 0.000377 USD
+- job bc532a0c-faa1-4d3f-a11f-f29a195f35a5: 9.23 s, 2610 tokens, 0.000377 USD
+- job 2c547e69-a7db-4200-9c69-909501920f6e: 8.12 s, 2712 tokens, 0.000454 USD
+- job 33943b00-e6d2-4b36-9f41-f9448c496db3: 9.30 s, 2592 tokens, 0.000451 USD
+Costo medio por ejecución: 0.000518 USD (n = 5)
+
+Por nodo del grafo (suma de todas las ejecuciones):
+- supervisor: 11 spans, 4334 tokens (25%), 11.34 s (23% de la latencia de nodos)
+- investigador: 5 spans, 11167 tokens (64%), 28.99 s (59% de la latencia de nodos)
+- analista: 1 spans, 832 tokens (5%), 2.68 s (5% de la latencia de nodos)
+- sintesis: 5 spans, 1236 tokens (7%), 5.81 s (12% de la latencia de nodos)
+
+Nodo con más tokens: investigador. Nodo donde se concentra la latencia: investigador.

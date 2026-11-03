@@ -1,31 +1,33 @@
----
-config:
-  flowchart:
-    curve: linear
----
-graph TD;
-	__start__([<p>__start__</p>]):::first
-	supervisor(supervisor)
-	investigador(investigador)
-	analista(analista)
-	aprobacion(aprobacion)
-	ejecutor(ejecutor)
-	sintesis(sintesis)
-	__end__([<p>__end__</p>]):::last
-	__start__ --> supervisor;
-	analista --> supervisor;
-	aprobacion -.-> ejecutor;
-	aprobacion -.-> sintesis;
-	aprobacion -.-> supervisor;
-	ejecutor --> supervisor;
-	investigador --> supervisor;
-	supervisor -.-> analista;
-	supervisor -.-> aprobacion;
-	supervisor -.-> ejecutor;
-	supervisor -.-> investigador;
-	supervisor -.-> sintesis;
-	sintesis --> __end__;
-	classDef default fill:#f2f0ff,line-height:1.2
-	classDef first fill-opacity:0
-	classDef last fill:#bfb6fc
-
+$ python diagrama.py
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	supervisor(supervisor)
+	investigador(investigador)
+	analista(analista)
+	aprobacion(aprobacion)
+	ejecutor(ejecutor)
+	sintesis(sintesis)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> supervisor;
+	analista --> supervisor;
+	aprobacion -.-> ejecutor;
+	aprobacion -.-> sintesis;
+	aprobacion -.-> supervisor;
+	ejecutor --> supervisor;
+	investigador --> supervisor;
+	supervisor -.-> analista;
+	supervisor -.-> aprobacion;
+	supervisor -.-> ejecutor;
+	supervisor -.-> investigador;
+	supervisor -.-> sintesis;
+	sintesis --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
+(exit 0)
+

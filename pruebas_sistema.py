@@ -114,6 +114,9 @@ async def main() -> None:
     await _limpiar_proyecto()
     print("Checkpointer:", await _compilar())
     from app import worker
+    from rag import sistema_rag
+
+    print("RAG:", (await sistema_rag()).origen)
 
     for indice, pregunta in enumerate(CONSULTAS, start=1):
         hilo = f"prueba-{indice}"
@@ -123,7 +126,6 @@ async def main() -> None:
             run_graph,
             pregunta,
             {"configurable": {"thread_id": hilo}},
-            25,
         )
         estado = "PAUSA" if resultado["paused"] else "OK"
         texto = resultado["interrupt"] if resultado["paused"] else resultado["result"]

@@ -1,0 +1,14 @@
+$ python demo_api.py hitl
+POST /tasks: {"job_id": "f376ea11-18cd-46bb-8489-6c554fbc05f4", "status": "PENDING", "thread_id": "f376ea11-18cd-46bb-8489-6c554fbc05f4"}
+Estados vistos por polling: RUNNING -> AWAITING_APPROVAL
+GET en pausa: {"status": "AWAITING_APPROVAL", "interrupt": {"reason": "side-effect tool register_payroll_adjustment", "tool": "register_payroll_adjustment", "query": "¿Cuántos días de vacaciones corresponden con 5 años de antigüedad? Registrá el ajuste de nómina con register_payroll_adjustment para el legajo 1042."}}
+POST /tasks/f376ea11-18cd-46bb-8489-6c554fbc05f4/approve: {"job_id": "f376ea11-18cd-46bb-8489-6c554fbc05f4", "status": "RUNNING"}
+Estados vistos por polling: RUNNING -> DONE
+GET final: {"status": "DONE", "result": "Con 5 años de antigüedad, un empleado en TechCorp tiene derecho a 21 días corridos de vacaciones por año calendario. La persona aprobó y se registró el ajuste de nómina para el legajo 1042.", "error": null}
+POST /tasks: {"job_id": "800ba21d-cae5-4ca8-938b-78ab0722f7e8", "status": "PENDING", "thread_id": "800ba21d-cae5-4ca8-938b-78ab0722f7e8"}
+Estados vistos por polling: RUNNING -> AWAITING_APPROVAL
+POST /tasks/800ba21d-cae5-4ca8-938b-78ab0722f7e8/approve: {"job_id": "800ba21d-cae5-4ca8-938b-78ab0722f7e8", "status": "RUNNING"}
+Estados vistos por polling: RUNNING -> DONE
+GET final: {"status": "DONE", "result": "Con 5 años de antigüedad, un empleado en TechCorp tiene derecho a 21 días corridos de vacaciones por año calendario. Sin embargo, el ajuste de nómina para el legajo 1042 fue rechazado y no se registró. Te recomiendo consultar con el departamento de Recursos Humanos para más información sobre cómo proceder.", "error": null}
+(exit 0)
+

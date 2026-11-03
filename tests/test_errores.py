@@ -158,8 +158,9 @@ def test_crea_chat_google(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GOOGLE_API_KEY", "clave-de-test")
     monkeypatch.setenv("GOOGLE_MODEL", "gemini-3.5-flash")
     monkeypatch.setenv("LLM_PROVIDER", "google")
-    llm = modelo.crear_llm()
+    llm = modelo.crear_llm(max_tokens=256)
     assert isinstance(llm, ChatGoogleGenerativeAI)
+    assert llm.max_output_tokens == 256
 
 
 def test_crea_chat_anthropic(monkeypatch: pytest.MonkeyPatch) -> None:

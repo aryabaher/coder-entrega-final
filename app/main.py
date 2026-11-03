@@ -41,14 +41,14 @@ class TaskRequest(BaseModel):
 
 class TaskResponse(BaseModel):
     job_id: str
-    status: str
+    status: worker.JobStatus
     thread_id: str
 
 
 class TaskStatus(BaseModel):
     job_id: str
     thread_id: str
-    status: str
+    status: worker.JobStatus
     query: str
     result: str | None = None
     error: str | None = None

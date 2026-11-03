@@ -14,7 +14,7 @@ import httpx
 
 PROYECTO = os.getenv("PHOENIX_PROJECT", "intelligence")
 NODOS = ("supervisor", "investigador", "analista", "sintesis", "aprobacion", "ejecutor")
-SALIDA = Path(__file__).with_name("evidencias") / "05-metricas.txt"
+SALIDA = Path(__file__).with_name("evidencias") / "08-metricas.txt"
 
 CONSULTA_PROYECTO = """
 query ($id: ID!) {

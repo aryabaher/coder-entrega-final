@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
@@ -12,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from redis.exceptions import RedisError
 
 from app import worker
+from state import AgentState
 
 TOOL_NAME = "register_payroll_adjustment"
 SIDE_EFFECT = "side_effect"
@@ -29,7 +31,7 @@ class ApprovalRequest(BaseModel):
 
 class ApprovalResponse(BaseModel):
     job_id: str
-    status: str
+    status: worker.JobStatus
 
 
 class PayrollAdjustment(BaseModel):
@@ -68,6 +70,13 @@ def register_payroll_adjustment(detail: str) -> str:
     return _register(detail)
 
 
+def _invalid_adjustment(error: ValidationError) -> str:
+    return AdjustmentResult(detail="", registered=False).observation()
+
+
+register_payroll_adjustment.handle_validation_error = _invalid_adjustment  # type: ignore[assignment]
+
+
 @router.post("/tasks/{job_id}/approve", response_model=ApprovalResponse)
 async def approve_task(job_id: str, body: ApprovalRequest) -> ApprovalResponse:
     """Resume a job paused on interrupt. Returns without waiting for the graph."""
@@ -82,7 +91,7 @@ async def approve_task(job_id: str, body: ApprovalRequest) -> ApprovalResponse:
     return ApprovalResponse(job_id=job_id, status="RUNNING")
 
 
-def latest_question(messages: list[BaseMessage]) -> str:
+def latest_question(messages: Sequence[BaseMessage]) -> str:
     """Text of the last human message: the question of the current turn."""
     for message in reversed(messages):
         if message.type == "human":
@@ -91,7 +100,7 @@ def latest_question(messages: list[BaseMessage]) -> str:
     return ""
 
 
-async def approval_node(state: dict[str, Any]) -> dict[str, Any]:
+async def approval_node(state: AgentState) -> dict[str, Any]:
     """Pause with interrupt. Nothing with side effects or extra cost runs before the answer."""
     reason = state.get("approval_reason") or SIDE_EFFECT
     question = latest_question(state["messages"])
@@ -111,15 +120,16 @@ async def approval_node(state: dict[str, Any]) -> dict[str, Any]:
     return {"approved": approved, "next_agent": "ejecutor" if approved else "FINISH"}
 
 
-async def executor_node(state: dict[str, Any]) -> dict[str, Any]:
+async def executor_node(state: AgentState) -> dict[str, Any]:
     """Run register_payroll_adjustment only after a person approved it."""
     if state.get("approved") is not True:
         raise PermissionError(f"{TOOL_NAME} without approval. The graph has to pass through interrupt first.")
-    result = _register(latest_question(state["messages"]))
-    return {"side_effect_done": True, "side_effect_result": result}
+    # Through the tool, so args_schema (PayrollAdjustment) validates the input.
+    result = await register_payroll_adjustment.ainvoke({"detail": latest_question(state["messages"])})
+    return {"side_effect_done": True, "side_effect_result": str(result)}
 
 
-def route_after_approval(state: dict[str, Any]) -> Literal["ejecutor", "supervisor", "sintesis"]:
+def route_after_approval(state: AgentState) -> Literal["ejecutor", "supervisor", "sintesis"]:
     """The critical edge: the side effect only runs when the answer was yes."""
     if state.get("approval_reason") == COST:
         return "supervisor" if state.get("cost_approved") is True else "sintesis"

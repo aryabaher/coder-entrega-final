@@ -1,0 +1,43 @@
+Despliegue local con una instrucción. Redis 8, Phoenix, la API y el worker.
+
+$ docker compose up --build -d   (últimas líneas)
+ Container coder-entrega-final-api-1 Creating 
+ Container coder-entrega-final-worker-1 Creating 
+ Container coder-entrega-final-worker-1 Created 
+ Container coder-entrega-final-api-1 Created 
+ Container coder-entrega-final-redis-1 Starting 
+ Container coder-entrega-final-phoenix-1 Starting 
+ Container coder-entrega-final-redis-1 Started 
+ Container coder-entrega-final-phoenix-1 Started 
+ Container coder-entrega-final-redis-1 Waiting 
+ Container coder-entrega-final-redis-1 Waiting 
+ Container coder-entrega-final-redis-1 Healthy 
+ Container coder-entrega-final-api-1 Starting 
+ Container coder-entrega-final-redis-1 Healthy 
+ Container coder-entrega-final-worker-1 Starting 
+ Container coder-entrega-final-worker-1 Started 
+ Container coder-entrega-final-api-1 Started
+(exit 0)
+
+$ docker compose ps
+SERVICE   IMAGE                                  STATUS                    PORTS
+api       coder-entrega-final-api                Up 51 seconds             0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+phoenix   arizephoenix/phoenix:version-20.23.0   Up 57 seconds             0.0.0.0:6006->6006/tcp, [::]:6006->6006/tcp
+redis     redis:8                                Up 57 seconds (healthy)   0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp
+worker    coder-entrega-final-worker             Up 51 seconds             8000/tcp
+(exit 0)
+
+$ docker compose logs api worker
+INFO:     Started server process [1]
+Worker started
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+(exit 0)
+
+$ POST /tasks y GET /tasks/{job_id} con Invoke-RestMethod (los comandos del README)
+POST /tasks -> {"job_id":"fccef41b-5402-436b-bb17-82e0e55ea33c","status":"PENDING","thread_id":"fccef41b-5402-436b-bb17-82e0e55ea33c"}
+Estados vistos por polling: RUNNING -> DONE
+GET /tasks/{job_id} -> {"job_id":"fccef41b-5402-436b-bb17-82e0e55ea33c","thread_id":"fccef41b-5402-436b-bb17-82e0e55ea33c","status":"DONE","query":"¿Cuántos días de vacaciones corresponden con 5 años de antigüedad?","result":"Los empleados de TechCorp con 5 años de antigüedad tienen derecho a 21 días corridos de vacaciones por año calendario.","error":null,"interrupt":null}
+(exit 0)
+

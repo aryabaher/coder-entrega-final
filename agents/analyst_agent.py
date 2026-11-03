@@ -115,7 +115,7 @@ def calculadora(expresion: str) -> str:
     return ResultadoCalculo(expresion=pedido.expresion, valor=str(resultado)).observacion()
 
 
-calculadora.handle_validation_error = _expresion_invalida  # type: ignore[attr-defined]
+calculadora.handle_validation_error = _expresion_invalida  # type: ignore[assignment]
 
 
 def _tiene_miles(texto: str) -> bool:

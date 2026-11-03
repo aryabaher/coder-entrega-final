@@ -1,8 +1,12 @@
 services:
   redis:
     image: redis:8
+    # AOF + volumen: los checkpoints de AsyncRedisSaver sobreviven a restart y a down/up (sin -v).
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -10,9 +14,13 @@ services:
       retries: 10
 
   phoenix:
-    image: arizephoenix/phoenix:latest
+    image: arizephoenix/phoenix:version-20.23.0
     ports:
       - "6006:6006"
+    environment:
+      PHOENIX_WORKING_DIR: /mnt/data
+    volumes:
+      - phoenix-data:/mnt/data
 
   api:
     build: .
@@ -45,3 +53,7 @@ services:
         condition: service_healthy
       phoenix:
         condition: service_started
+
+volumes:
+  redis-data:
+  phoenix-data:

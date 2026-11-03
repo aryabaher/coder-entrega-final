@@ -1,0 +1,168 @@
+Las conversaciones sobreviven al reinicio del servidor. El Checkpointer es AsyncRedisSaver; Redis guarda en el volumen redis-data con AOF.
+
+$ docker compose exec redis redis-cli CONFIG GET appendonly
+appendonly
+yes
+(exit 0)
+
+== 1. Hilo de dos turnos, docker compose restart api worker, y el historial sigue ==
+
+$ python demo_api.py hilo
+POST /tasks: {"job_id": "e2a7d1aa-89a0-42bf-96b4-f837ba279e24", "status": "PENDING", "thread_id": "e2a7d1aa-89a0-42bf-96b4-f837ba279e24"}
+Estados vistos por polling: RUNNING -> DONE
+Turno 1: {"status": "DONE", "result": "En TechCorp, los días de vacaciones anuales según la antigüedad son: menos de 5 años, 14 días corridos; entre 5 y 10 años, 21 días corridos; y más de 10 años, 28 días corridos."}
+POST /tasks: {"job_id": "27760e21-41e4-4e08-a126-38337ab3e159", "status": "PENDING", "thread_id": "e2a7d1aa-89a0-42bf-96b4-f837ba279e24"}
+Estados vistos por polling: RUNNING -> DONE
+Turno 2: {"status": "DONE", "result": "Un empleado acumula un total de 231 días de vacaciones en sus primeros 12 años en TechCorp. Esto se calcula considerando 5 años con 14 días, 5 años con 21 días y 2 años con 28 días."}
+GET /threads/e2a7d1aa-89a0-42bf-96b4-f837ba279e24: 200
+  [human:-] ¿Cuántos días de vacaciones por año corresponden en TechCorp según la antigüedad?
+  [ai:investigador] En TechCorp, los días de vacaciones anuales según la antigüedad son los siguientes:
+
+- Menos de 5 años: 14 días corridos.
+- Entre 5 y 10 año
+  [ai:supervisor] En TechCorp, los días de vacaciones anuales según la antigüedad son: menos de 5 años, 14 días corridos; entre 5 y 10 años, 21 días corridos;
+  [human:-] ¿Y cuántos días acumula en total un empleado en sus primeros 12 años?
+  [ai:analista] Un empleado acumula un total de 231 días de vacaciones en sus primeros 12 años. La expresión utilizada es: 
+
+\( 5*14 + 5*21 + 2*28 \)
+  [ai:investigador] En TechCorp, los empleados acumulan días de vacaciones según su antigüedad:
+
+- Menos de 5 años: 14 días por año.
+- Entre 5 y 10 años: 21 día
+  [ai:supervisor] Un empleado acumula un total de 231 días de vacaciones en sus primeros 12 años en TechCorp. Esto se calcula considerando 5 años con 14 días,
+(exit 0)
+
+$ docker compose restart api worker
+ Container coder-entrega-final-api-1 Restarting 
+ Container coder-entrega-final-worker-1 Restarting 
+ Container coder-entrega-final-api-1 Started 
+ Container coder-entrega-final-worker-1 Started
+(exit 0)
+
+$ python demo_api.py historial e2a7d1aa-89a0-42bf-96b4-f837ba279e24
+GET /threads/e2a7d1aa-89a0-42bf-96b4-f837ba279e24: 200
+  [human:-] ¿Cuántos días de vacaciones por año corresponden en TechCorp según la antigüedad?
+  [ai:investigador] En TechCorp, los días de vacaciones anuales según la antigüedad son los siguientes:
+
+- Menos de 5 años: 14 días corridos.
+- Entre 5 y 10 año
+  [ai:supervisor] En TechCorp, los días de vacaciones anuales según la antigüedad son: menos de 5 años, 14 días corridos; entre 5 y 10 años, 21 días corridos;
+  [human:-] ¿Y cuántos días acumula en total un empleado en sus primeros 12 años?
+  [ai:analista] Un empleado acumula un total de 231 días de vacaciones en sus primeros 12 años. La expresión utilizada es: 
+
+\( 5*14 + 5*21 + 2*28 \)
+  [ai:investigador] En TechCorp, los empleados acumulan días de vacaciones según su antigüedad:
+
+- Menos de 5 años: 14 días por año.
+- Entre 5 y 10 años: 21 día
+  [ai:supervisor] Un empleado acumula un total de 231 días de vacaciones en sus primeros 12 años en TechCorp. Esto se calcula considerando 5 años con 14 días,
+(exit 0)
+
+== 2. docker compose down (sin -v) y up: los volúmenes conservan el hilo y las trazas ==
+
+$ docker compose down
+ Container coder-entrega-final-api-1 Stopping 
+ Container coder-entrega-final-worker-1 Stopping 
+ Container coder-entrega-final-api-1 Stopped 
+ Container coder-entrega-final-api-1 Removing 
+ Container coder-entrega-final-api-1 Removed 
+ Container coder-entrega-final-worker-1 Stopped 
+ Container coder-entrega-final-worker-1 Removing 
+ Container coder-entrega-final-worker-1 Removed 
+ Container coder-entrega-final-phoenix-1 Stopping 
+ Container coder-entrega-final-redis-1 Stopping 
+ Container coder-entrega-final-redis-1 Stopped 
+ Container coder-entrega-final-redis-1 Removing 
+ Container coder-entrega-final-redis-1 Removed 
+ Container coder-entrega-final-phoenix-1 Stopped 
+ Container coder-entrega-final-phoenix-1 Removing 
+ Container coder-entrega-final-phoenix-1 Removed 
+ Network coder-entrega-final_default Removing 
+ Network coder-entrega-final_default Removed
+(exit 0)
+
+$ docker volume ls --filter name=coder-entrega-final
+coder-entrega-final_phoenix-data
+coder-entrega-final_redis-data
+(exit 0)
+
+$ docker compose up -d
+ Network coder-entrega-final_default Creating 
+ Network coder-entrega-final_default Created 
+ Container coder-entrega-final-phoenix-1 Creating 
+ Container coder-entrega-final-redis-1 Creating 
+ Container coder-entrega-final-redis-1 Created 
+ Container coder-entrega-final-phoenix-1 Created 
+ Container coder-entrega-final-worker-1 Creating 
+ Container coder-entrega-final-api-1 Creating 
+ Container coder-entrega-final-worker-1 Created 
+ Container coder-entrega-final-api-1 Created 
+ Container coder-entrega-final-phoenix-1 Starting 
+ Container coder-entrega-final-redis-1 Starting 
+ Container coder-entrega-final-phoenix-1 Started 
+ Container coder-entrega-final-redis-1 Started 
+ Container coder-entrega-final-redis-1 Waiting 
+ Container coder-entrega-final-redis-1 Waiting 
+ Container coder-entrega-final-redis-1 Healthy 
+ Container coder-entrega-final-api-1 Starting 
+ Container coder-entrega-final-redis-1 Healthy 
+ Container coder-entrega-final-worker-1 Starting 
+ Container coder-entrega-final-worker-1 Started 
+ Container coder-entrega-final-api-1 Started
+(exit 0)
+
+$ docker compose exec redis redis-cli DBSIZE
+2224
+(exit 0)
+
+$ python demo_api.py historial e2a7d1aa-89a0-42bf-96b4-f837ba279e24
+GET /threads/e2a7d1aa-89a0-42bf-96b4-f837ba279e24: 200
+  [human:-] ¿Cuántos días de vacaciones por año corresponden en TechCorp según la antigüedad?
+  [ai:investigador] En TechCorp, los días de vacaciones anuales según la antigüedad son los siguientes:
+
+- Menos de 5 años: 14 días corridos.
+- Entre 5 y 10 año
+  [ai:supervisor] En TechCorp, los días de vacaciones anuales según la antigüedad son: menos de 5 años, 14 días corridos; entre 5 y 10 años, 21 días corridos;
+  [human:-] ¿Y cuántos días acumula en total un empleado en sus primeros 12 años?
+  [ai:analista] Un empleado acumula un total de 231 días de vacaciones en sus primeros 12 años. La expresión utilizada es: 
+
+\( 5*14 + 5*21 + 2*28 \)
+  [ai:investigador] En TechCorp, los empleados acumulan días de vacaciones según su antigüedad:
+
+- Menos de 5 años: 14 días por año.
+- Entre 5 y 10 años: 21 día
+  [ai:supervisor] Un empleado acumula un total de 231 días de vacaciones en sus primeros 12 años en TechCorp. Esto se calcula considerando 5 años con 14 días,
+(exit 0)
+
+$ python metricas.py -   (primeras líneas: Phoenix conserva las trazas)
+Phoenix http://localhost:6006, proyecto intelligence
+Trazas en el proyecto: 21
+(exit -1)
+
+== 3. Una tarea pausada en AWAITING_APPROVAL se aprueba después de reiniciar ==
+
+$ python demo_api.py pausar
+POST /tasks: {"job_id": "99625949-4cb5-4184-9b17-f9b5e8399b72", "status": "PENDING", "thread_id": "99625949-4cb5-4184-9b17-f9b5e8399b72"}
+Estados vistos por polling: RUNNING -> AWAITING_APPROVAL
+GET en pausa: {"status": "AWAITING_APPROVAL", "interrupt": {"reason": "side-effect tool register_payroll_adjustment", "tool": "register_payroll_adjustment", "query": "¿Cuántos días de vacaciones corresponden con 5 años de antigüedad? Registrá el ajuste de nómina con register_payroll_adjustment para el legajo 1042."}}
+Guardado en .pausa_pendiente.json. Reiniciá la API y corré: python demo_api.py aprobar
+(exit 0)
+
+$ docker compose restart api worker
+ Container coder-entrega-final-api-1 Restarting 
+ Container coder-entrega-final-worker-1 Restarting 
+ Container coder-entrega-final-api-1 Started 
+ Container coder-entrega-final-worker-1 Started
+(exit 0)
+
+$ python demo_api.py aprobar
+GET tras el reinicio: {"status": "AWAITING_APPROVAL", "thread_id": "99625949-4cb5-4184-9b17-f9b5e8399b72"}
+POST /tasks/99625949-4cb5-4184-9b17-f9b5e8399b72/approve: {"job_id": "99625949-4cb5-4184-9b17-f9b5e8399b72", "status": "RUNNING"}
+Estados vistos por polling: RUNNING -> DONE
+GET final: {"status": "DONE", "result": "Con 5 años de antigüedad, un empleado en TechCorp tiene derecho a 21 días corridos de vacaciones por año calendario. La persona aprobó y se registró el ajuste de nómina para el legajo 1042.", "error": null}
+GET /threads/99625949-4cb5-4184-9b17-f9b5e8399b72: 200
+  [human:-] ¿Cuántos días de vacaciones corresponden con 5 años de antigüedad? Registrá el ajuste de nómina con register_payroll_adjustment para el lega
+  [ai:investigador] Con 5 años de antigüedad, un empleado en TechCorp tiene derecho a **21 días corridos de vacaciones** por año calendario. [Fuente: politica_v
+  [ai:supervisor] Con 5 años de antigüedad, un empleado en TechCorp tiene derecho a 21 días corridos de vacaciones por año calendario. La persona aprobó y se
+(exit 0)
+

@@ -1,35 +1,38 @@
-Python 3.12.10
-401/key: falta OPENAI_API_KEY en las variables de entorno. Copiá .env.example a .env y cargá la clave. No se reintenta.
-red/timeout: no se pudo hablar con el proveedor del LLM. Detalle: TimeoutError: timed out
-429/cuota: el proveedor limitó las llamadas (rate limit o cuota). Detalle: Exception: rate limit
-Guardia 3.11: Python 3.12+ requerido: app/graph.py usa el alias `type` (PEP 695). Versión actual: 3.11. Creá el venv con `py -3.12 -m venv .venv` (Windows) o `python3.12 -m venv .venv` (Linux/macOS).
-Tarea normal: {'paused': False, 'interrupt': None, 'result': 'En 12 años acumuló 231 días de vacaciones.'}
-Seguimiento en el mismo hilo: En 12 años acumuló 231 días de vacaciones.
-Historial del hilo demo: [('human', None), ('ai', 'investigador'), ('ai', 'analista'), ('ai', 'supervisor'), ('human', None), ('ai', 'investigador'), ('ai', 'supervisor')]
-Pausa por costo: {'reason': 'estimated cost above COSTO_MAXIMO_USD', 'estimated_cost_usd': 1.0, 'limit_usd': 0.5, 'query': 'Un empleado va a cumplir 12 años en TechCorp. Tuvo 14 días de vacaciones los primeros 5 años, 21 los siguientes 5, y ahora tiene derecho a 28. ¿Cuántos días de vacaciones acumuló en total en esos 12 años?'}
-Costo rechazado, cierra: False
-Worker started
-POST /tasks: {'job_id': 'df28993e-ddb3-4deb-8708-4febd58c7c46', 'status': 'PENDING', 'thread_id': 'df28993e-ddb3-4deb-8708-4febd58c7c46'}
-POST /tasks mismo hilo: {'job_id': 'c58cff1e-3567-4cbd-97b9-3dc4064ab83f', 'status': 'PENDING', 'thread_id': 'df28993e-ddb3-4deb-8708-4febd58c7c46'}
-GET /threads humanos: ['Un empleado va a cumplir 12 años en TechCorp. Tuvo 14 días de vacaciones los primeros 5 años, 21 los siguientes 5, y ahora tiene derecho a 28. ¿Cuántos días de vacaciones acumuló en total en esos 12 años?', '¿Y si en vez de 12 fueran 15 años?']
-404 hilo: 404 Thread not found
-GET en pausa: {"reason": "side-effect tool register_payroll_adjustment", "tool": "register_payroll_adjustment", "query": "Un empleado va a cumplir 12 años en TechCorp. Tuvo 1
-409 hilo ocupado: 409 Thread is busy
-POST approve: {'job_id': 'ff5a5f84-7280-41ec-be7e-1f727a48efa9', 'status': 'RUNNING'}
-GET final: DONE efectos: 1
-409 approve: 409 Job is not awaiting approval
-FAILED: FAILED corte de prueba
-Huérfanos recuperados: ['huerfano']
-Huérfano: worker restarted before the job finished
-Worker started
-422 query en blanco: {"detail":[{"type":"string_too_short","loc":["body","query"],"msg":"String should have at least 1 character","input":"   ","ctx":{"min_length":1}}]}
-404 job: {"detail":"Job not found"}
-404 approve: {"detail":"Job not found"}
-Worker started
-503 Redis caído después de arrancar: 503 {"detail":"Redis is unavailable"}
-Redis caído al arrancar: Redis is unavailable at redis://localhost:6379. Start it with: docker compose up
-git ls-files .env *.sqlite:
-(ninguno)
-git check-ignore .env:
-.gitignore:12:.env	.env
-validacion ok
+$ python validacion.py
+Python 3.12.10
+401/key: falta OPENAI_API_KEY en las variables de entorno. Copiá .env.example a .env y cargá la clave. No se reintenta.
+red/timeout: no se pudo hablar con el proveedor del LLM. Detalle: TimeoutError: timed out
+429/cuota: el proveedor limitó las llamadas (rate limit o cuota). Detalle: Exception: rate limit
+Guardia 3.11: Python 3.12+ requerido: app/graph.py usa el alias `type` (PEP 695). Versión actual: 3.11. Creá el venv con `py -3.12 -m venv .venv` (Windows) o `python3.12 -m venv .venv` (Linux/macOS).
+Tarea normal: {'paused': False, 'interrupt': None, 'result': 'En 12 años acumuló 231 días de vacaciones.'}
+Seguimiento en el mismo hilo: En 12 años acumuló 231 días de vacaciones.
+Historial del hilo demo: [('human', None), ('ai', 'investigador'), ('ai', 'analista'), ('ai', 'supervisor'), ('human', None), ('ai', 'investigador'), ('ai', 'supervisor')]
+Pausa por costo: {'reason': 'estimated cost above COSTO_MAXIMO_USD', 'estimated_cost_usd': 1.0, 'limit_usd': 0.5, 'query': 'Un empleado va a cumplir 12 años en TechCorp. Tuvo 14 días de vacaciones los primeros 5 años, 21 los siguientes 5, y ahora tiene derecho a 28. ¿Cuántos días de vacaciones acumuló en total en esos 12 años?'}
+Costo rechazado, cierra: False
+Worker started
+POST /tasks: {'job_id': '07ef4248-c006-4e2e-9d5b-eb8981a85822', 'status': 'PENDING', 'thread_id': '07ef4248-c006-4e2e-9d5b-eb8981a85822'}
+POST /tasks mismo hilo: {'job_id': '8aca2ffe-738a-421c-8f72-5dcf05f957ad', 'status': 'PENDING', 'thread_id': '07ef4248-c006-4e2e-9d5b-eb8981a85822'}
+GET /threads humanos: ['Un empleado va a cumplir 12 años en TechCorp. Tuvo 14 días de vacaciones los primeros 5 años, 21 los siguientes 5, y ahora tiene derecho a 28. ¿Cuántos días de vacaciones acumuló en total en esos 12 años?', '¿Y si en vez de 12 fueran 15 años?']
+404 hilo: 404 Thread not found
+GET en pausa: {"reason": "side-effect tool register_payroll_adjustment", "tool": "register_payroll_adjustment", "query": "Un empleado va a cumplir 12 años en TechCorp. Tuvo 1
+409 hilo ocupado: 409 Thread is busy
+POST approve: {'job_id': 'a29127f5-533a-48d0-b135-7cbfa7afb4ed', 'status': 'RUNNING'}
+GET final: DONE efectos: 1
+409 approve: 409 Job is not awaiting approval
+FAILED: FAILED corte de prueba
+Huérfanos recuperados: ['huerfano']
+Huérfano: worker restarted before the job finished
+Worker started
+422 query en blanco: {"detail":[{"type":"string_too_short","loc":["body","query"],"msg":"String should have at least 1 character","input":"   ","ctx":{"min_length":1}}]}
+404 job: {"detail":"Job not found"}
+404 approve: {"detail":"Job not found"}
+Worker started
+503 Redis caído después de arrancar: 503 {"detail":"Redis is unavailable"}
+Redis caído al arrancar: Redis is unavailable at redis://localhost:6379. Start it with: docker compose up
+git ls-files .env *.sqlite:
+(ninguno)
+git check-ignore .env:
+.gitignore:12:.env	.env
+validacion ok
+(exit 0)
+

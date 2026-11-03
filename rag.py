@@ -5,7 +5,7 @@ import hashlib
 import os
 import unicodedata
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from langchain_classic.retrievers import EnsembleRetriever
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
@@ -19,6 +19,8 @@ from errors import ClaveAPIError, ConfiguracionError, IndiceIncompatibleError
 
 RUTA_DATOS = Path(__file__).with_name("data")
 EMBEDDING_DIM = 1536
+PINECONE_CLOUD = "aws"
+PINECONE_REGION = "us-east-1"
 K_DEFAULT = 5
 CHUNK_SIZE = 600
 CHUNK_OVERLAP = 100
@@ -79,6 +81,27 @@ def modelo_embedding() -> str:
     return _exigir_entorno("OPENAI_EMBEDDING_MODEL")
 
 
+def dimension_embedding() -> int:
+    """EMBEDDING_DIM del entorno. Tiene que coincidir con el índice; el default es el de text-embedding-3-small."""
+    crudo = (os.getenv("EMBEDDING_DIM") or "").strip()
+    if not crudo:
+        return EMBEDDING_DIM
+    try:
+        dimension = int(crudo)
+    except ValueError as exc:
+        raise ConfiguracionError(f"EMBEDDING_DIM inválido: '{crudo}'. Tiene que ser un entero, por ejemplo 1536.") from exc
+    if dimension <= 0:
+        raise ConfiguracionError(f"EMBEDDING_DIM inválido: '{crudo}'. Tiene que ser mayor que 0.")
+    return dimension
+
+
+def ubicacion_pinecone() -> tuple[str, str]:
+    """PINECONE_CLOUD y PINECONE_REGION del entorno, para crear el índice serverless si no existe."""
+    cloud = (os.getenv("PINECONE_CLOUD") or PINECONE_CLOUD).strip() or PINECONE_CLOUD
+    region = (os.getenv("PINECONE_REGION") or PINECONE_REGION).strip() or PINECONE_REGION
+    return cloud, region
+
+
 class RAGSystem:
     """BM25 + vectorial. `k` llega a los dos retrievers en cada consulta."""
 
@@ -90,7 +113,7 @@ class RAGSystem:
         # pisan esa sesión ("Session is closed"). Una a la vez evita el choque.
         self._consulta = asyncio.Lock()
 
-    async def obtener_top_k(self, query: str) -> List[Dict[str, str]]:
+    async def obtener_top_k(self, query: str) -> list[dict[str, str]]:
         """k llega a los dos retrievers y la consulta sale por ainvoke."""
         self._propagar_k()
         async with self._consulta:
@@ -141,7 +164,7 @@ def construir_rag_local(
     chunks = cargar_chunks(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     retriever_bm25 = BM25Retriever.from_documents(chunks)
     retriever_bm25.k = k
-    vectorstore = InMemoryVectorStore(embeddings or EmbeddingsLocales(dimension=EMBEDDING_DIM))
+    vectorstore = InMemoryVectorStore(embeddings or EmbeddingsLocales(dimension=dimension_embedding()))
     vectorstore.add_documents(chunks)
     retriever_vectorial = vectorstore.as_retriever(search_kwargs={"k": k})
     retriever_hibrido = EnsembleRetriever(retrievers=[retriever_bm25, retriever_vectorial], weights=[0.5, 0.5])
@@ -194,18 +217,20 @@ def conectar_pinecone(k: int = K_DEFAULT) -> RAGSystem:
         )
     indice = nombre_indice()
     espacio = namespace_politicas()
-    embeddings = OpenAIEmbeddings(model=modelo_embedding(), dimensions=EMBEDDING_DIM)
+    dimension = dimension_embedding()
+    embeddings = OpenAIEmbeddings(model=modelo_embedding(), dimensions=dimension)
     pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
     nombres = [i["name"] if isinstance(i, dict) else i.name for i in pc.list_indexes()]
     if indice not in nombres:
+        cloud, region = ubicacion_pinecone()
         pc.create_index(
             name=indice,
-            dimension=EMBEDDING_DIM,
+            dimension=dimension,
             metric="cosine",
-            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+            spec=ServerlessSpec(cloud=cloud, region=region),
         )
     else:
-        verificar_indice(pc.describe_index(indice), EMBEDDING_DIM)
+        verificar_indice(pc.describe_index(indice), dimension)
     vectorstore = PineconeVectorStore(index_name=indice, embedding=embeddings, namespace=espacio)
     cantidad = vectores_en_namespace(pc.Index(indice).describe_index_stats(), espacio)
     if cantidad == 0:
@@ -224,7 +249,7 @@ def conectar_pinecone(k: int = K_DEFAULT) -> RAGSystem:
 
 def construir_rag(k: int = K_DEFAULT) -> RAGSystem:
     """Pinecone si hay PINECONE_API_KEY; si no, el índice local híbrido."""
-    if os.getenv("PINECONE_API_KEY"):
+    if (os.getenv("PINECONE_API_KEY") or "").strip():
         return conectar_pinecone(k)
     return construir_rag_local(k)
 
@@ -233,11 +258,11 @@ _sistema: RAGSystem | None = None
 
 
 async def sistema_rag() -> RAGSystem:
-    """El índice se arma una vez. Pinecone (sync) sale del event loop; la consulta va por ainvoke."""
+    """El índice se arma una vez y fuera del event loop: Pinecone y la lectura de data/ son síncronos.
+
+    La consulta sí va por ainvoke.
+    """
     global _sistema
     if _sistema is None:
-        if (os.getenv("PINECONE_API_KEY") or "").strip():
-            _sistema = await asyncio.to_thread(construir_rag)
-        else:
-            _sistema = construir_rag_local()
+        _sistema = await asyncio.to_thread(construir_rag)
     return _sistema
